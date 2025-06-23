@@ -8,10 +8,10 @@
 
 #include "zserio/BitBuffer.h"
 #include "zserio/Bytes.h"
-#include "zserio/CppRuntimeException.h"
 #include "zserio/SizeConvertUtil.h"
 #include "zserio/String.h"
 #include "zserio/Types.h"
+#include "zserio/Expected.h"
 
 namespace zserio
 {
@@ -22,12 +22,8 @@ namespace zserio
 class BitStreamWriter
 {
 public:
-    /** Exception throw in case of insufficient capacity of the given buffer. */
-    class InsufficientCapacityException : public CppRuntimeException
-    {
-    public:
-        using CppRuntimeException::CppRuntimeException;
-    };
+    /** Error code for insufficient capacity of the given buffer. */
+    static constexpr const char* INSUFFICIENT_CAPACITY_ERROR = "Insufficient capacity";
 
     /** Type for bit position. */
     using BitPosType = size_t;
@@ -97,7 +93,7 @@ public:
      * \param data Data to write.
      * \param numBits Number of bits to write.
      */
-    void writeUnsignedBits32(uint32_t data, uint8_t numBits = 32);
+    expected<void> writeUnsignedBits32(uint32_t data, uint8_t numBits = 32);
 
     /**
      * Writes unsigned bits up to 64 bits.
@@ -105,7 +101,7 @@ public:
      * \param data Data to write.
      * \param numBits Number of bits to write.
      */
-    void writeUnsignedBits64(uint64_t data, uint8_t numBits = 64);
+    expected<void> writeUnsignedBits64(uint64_t data, uint8_t numBits = 64);
 
     /**
      * Writes signed bits up to 32 bits.
@@ -113,7 +109,7 @@ public:
      * \param data Data to write.
      * \param numBits Number of bits to write.
      */
-    void writeSignedBits32(int32_t data, uint8_t numBits = 32);
+    expected<void> writeSignedBits32(int32_t data, uint8_t numBits = 32);
 
     /**
      * Writes signed bits up to 64 bits.
@@ -121,112 +117,112 @@ public:
      * \param data Data to write.
      * \param numBits Number of bits to write.
      */
-    void writeSignedBits64(int64_t data, uint8_t numBits = 64);
+    expected<void> writeSignedBits64(int64_t data, uint8_t numBits = 64);
 
     /**
      * Writes bool as a single bit.
      *
      * \param data Bool to write.
      */
-    void writeBool(Bool data);
+    expected<void> writeBool(Bool data);
 
     /**
      * Writes signed variable integer up to 16 bits.
      *
      * \param data Varint16 to write.
      */
-    void writeVarInt16(VarInt16 data);
+    expected<void> writeVarInt16(VarInt16 data);
 
     /**
      * Writes signed variable integer up to 32 bits.
      *
      * \param data Varint32 to write.
      */
-    void writeVarInt32(VarInt32 data);
+    expected<void> writeVarInt32(VarInt32 data);
 
     /**
      * Writes signed variable integer up to 64 bits.
      *
      * \param data Varint64 to write.
      */
-    void writeVarInt64(VarInt64 data);
+    expected<void> writeVarInt64(VarInt64 data);
 
     /**
      * Writes signed variable integer up to 72 bits.
      *
      * \param data Varuint64 to write.
      */
-    void writeVarInt(VarInt data);
+    expected<void> writeVarInt(VarInt data);
 
     /**
      * Writes unsigned variable integer up to 16 bits.
      *
      * \param data Varuint16 to write.
      */
-    void writeVarUInt16(VarUInt16 data);
+    expected<void> writeVarUInt16(VarUInt16 data);
 
     /**
      * Writes unsigned variable integer up to 32 bits.
      *
      * \param data Varuint32 to write.
      */
-    void writeVarUInt32(VarUInt32 data);
+    expected<void> writeVarUInt32(VarUInt32 data);
 
     /**
      * Writes unsigned variable integer up to 64 bits.
      *
      * \param data Varuint64 to write.
      */
-    void writeVarUInt64(VarUInt64 data);
+    expected<void> writeVarUInt64(VarUInt64 data);
 
     /**
      * Writes signed variable integer up to 72 bits.
      *
      * \param data Varuint64 to write.
      */
-    void writeVarUInt(VarUInt data);
+    expected<void> writeVarUInt(VarUInt data);
 
     /**
      * Writes variable size integer up to 40 bits.
      *
      * \param data Varsize to write.
      */
-    void writeVarSize(VarSize data);
+    expected<void> writeVarSize(VarSize data);
 
     /**
      * Writes 16-bit float.
      *
      * \param data Float16 to write.
      */
-    void writeFloat16(Float16 data);
+    expected<void> writeFloat16(Float16 data);
 
     /**
      * Writes 32-bit float.
      *
      * \param data Float32 to write.
      */
-    void writeFloat32(Float32 data);
+    expected<void> writeFloat32(Float32 data);
 
     /**
      * Writes 64-bit float.
      *
      * \param data Float64 to write.
      */
-    void writeFloat64(Float64 data);
+    expected<void> writeFloat64(Float64 data);
 
     /**
      * Writes bytes.
      *
      * \param data Bytes to write.
      */
-    void writeBytes(BytesView data);
+    expected<void> writeBytes(BytesView data);
 
     /**
      * Writes UTF-8 string.
      *
      * \param data String view to write.
      */
-    void writeString(std::string_view data);
+    expected<void> writeString(std::string_view data);
 
     /**
      * Writes bit buffer.
@@ -234,7 +230,7 @@ public:
      * \param bitBuffer Bit buffer to write.
      */
     template <typename ALLOC>
-    void writeBitBuffer(const BasicBitBuffer<ALLOC>& bitBuffer)
+    expected<void> writeBitBuffer(const BasicBitBuffer<ALLOC>& bitBuffer)
     {
         const VarSize bitSize = fromCheckedValue<VarSize>(convertSizeToUInt32(bitBuffer.getBitSize()));
         writeVarSize(bitSize);
@@ -328,11 +324,11 @@ public:
     }
 
 private:
-    void writeUnsignedBits32Impl(uint32_t data, uint8_t numBits);
-    void writeUnsignedBits64Impl(uint64_t data, uint8_t numBits);
-    void writeSignedVarNum(int64_t value, size_t maxVarBytes, size_t numVarBytes);
-    void writeUnsignedVarNum(uint64_t value, size_t maxVarBytes, size_t numVarBytes);
-    void writeVarNum(uint64_t value, bool hasSign, bool isNegative, size_t maxVarBytes, size_t numVarBytes);
+    expected<void> writeUnsignedBits32Impl(uint32_t data, uint8_t numBits);
+    expected<void> writeUnsignedBits64Impl(uint64_t data, uint8_t numBits);
+    expected<void> writeSignedVarNum(int64_t value, size_t maxVarBytes, size_t numVarBytes);
+    expected<void> writeUnsignedVarNum(uint64_t value, size_t maxVarBytes, size_t numVarBytes);
+    expected<void> writeVarNum(uint64_t value, bool hasSign, bool isNegative, size_t maxVarBytes, size_t numVarBytes);
 
     void checkCapacity(size_t bitSize) const;
     void throwInsufficientCapacityException() const;
@@ -345,13 +341,13 @@ private:
 namespace detail
 {
 
-inline void write(BitStreamWriter& writer, Bool value)
+inline expected<void> write(BitStreamWriter& writer, Bool value)
 {
-    writer.writeBool(value);
+    return writer.writeBool(value);
 }
 
 template <BitSize BIT_SIZE, bool IS_SIGNED>
-void write(BitStreamWriter& writer, FixedIntWrapper<BIT_SIZE, IS_SIGNED> value)
+expected<void> write(BitStreamWriter& writer, FixedIntWrapper<BIT_SIZE, IS_SIGNED> value)
 {
     using ValueType = typename FixedIntWrapper<BIT_SIZE, IS_SIGNED>::ValueType;
 
@@ -360,127 +356,127 @@ void write(BitStreamWriter& writer, FixedIntWrapper<BIT_SIZE, IS_SIGNED> value)
     {
         if constexpr (std::is_signed_v<ValueType>)
         {
-            writer.writeSignedBits32(value, BIT_SIZE);
+            return writer.writeSignedBits32(value, BIT_SIZE);
         }
         else
         {
-            writer.writeUnsignedBits32(value, BIT_SIZE);
+            return writer.writeUnsignedBits32(value, BIT_SIZE);
         }
     }
     else
     {
         if constexpr (std::is_signed_v<ValueType>)
         {
-            writer.writeSignedBits64(value, BIT_SIZE);
+            return writer.writeSignedBits64(value, BIT_SIZE);
         }
         else
         {
-            writer.writeUnsignedBits64(value, BIT_SIZE);
+            return writer.writeUnsignedBits64(value, BIT_SIZE);
         }
     }
 }
 
-template <typename T>
+template <typename T> expected<void>
 void write(BitStreamWriter& writer, DynIntWrapper<T> value, uint8_t numBits)
 {
     if constexpr (sizeof(T) <= 4)
     {
         if constexpr (std::is_signed_v<T>)
         {
-            writer.writeSignedBits32(value, numBits);
+            return writer.writeSignedBits32(value, numBits);
         }
         else
         {
-            writer.writeUnsignedBits32(value, numBits);
+            return writer.writeUnsignedBits32(value, numBits);
         }
     }
     else
     {
         if constexpr (std::is_signed_v<T>)
         {
-            writer.writeSignedBits64(value, numBits);
+            return writer.writeSignedBits64(value, numBits);
         }
         else
         {
-            writer.writeUnsignedBits64(value, numBits);
+            return writer.writeUnsignedBits64(value, numBits);
         }
     }
 }
 
-inline void write(BitStreamWriter& writer, VarInt16 value)
+inline expected<void> write(BitStreamWriter& writer, VarInt16 value)
 {
-    writer.writeVarInt16(value);
+    return writer.writeVarInt16(value);
 }
 
-inline void write(BitStreamWriter& writer, VarInt32 value)
+inline expected<void> write(BitStreamWriter& writer, VarInt32 value)
 {
-    writer.writeVarInt32(value);
+    return writer.writeVarInt32(value);
 }
 
-inline void write(BitStreamWriter& writer, VarInt64 value)
+inline expected<void> write(BitStreamWriter& writer, VarInt64 value)
 {
-    writer.writeVarInt64(value);
+    return writer.writeVarInt64(value);
 }
 
-inline void write(BitStreamWriter& writer, VarInt value)
+inline expected<void> write(BitStreamWriter& writer, VarInt value)
 {
-    writer.writeVarInt(value);
+    return writer.writeVarInt(value);
 }
 
-inline void write(BitStreamWriter& writer, VarUInt16 value)
+inline expected<void> write(BitStreamWriter& writer, VarUInt16 value)
 {
-    writer.writeVarUInt16(value);
+    return writer.writeVarUInt16(value);
 }
 
-inline void write(BitStreamWriter& writer, VarUInt32 value)
+inline expected<void> write(BitStreamWriter& writer, VarUInt32 value)
 {
-    writer.writeVarUInt32(value);
+    return writer.writeVarUInt32(value);
 }
 
-inline void write(BitStreamWriter& writer, VarUInt64 value)
+inline expected<void> write(BitStreamWriter& writer, VarUInt64 value)
 {
-    writer.writeVarUInt64(value);
+    return writer.writeVarUInt64(value);
 }
 
-inline void write(BitStreamWriter& writer, VarUInt value)
+inline expected<void> write(BitStreamWriter& writer, VarUInt value)
 {
-    writer.writeVarUInt(value);
+    return writer.writeVarUInt(value);
 }
 
-inline void write(BitStreamWriter& writer, VarSize value)
+inline expected<void> write(BitStreamWriter& writer, VarSize value)
 {
-    writer.writeVarSize(value);
+    return writer.writeVarSize(value);
 }
 
-inline void write(BitStreamWriter& writer, Float16 value)
+inline expected<void> write(BitStreamWriter& writer, Float16 value)
 {
-    writer.writeFloat16(value);
+    return writer.writeFloat16(value);
 }
 
-inline void write(BitStreamWriter& writer, Float32 value)
+inline expected<void> write(BitStreamWriter& writer, Float32 value)
 {
-    writer.writeFloat32(value);
+    return writer.writeFloat32(value);
 }
 
-inline void write(BitStreamWriter& writer, Float64 value)
+inline expected<void> write(BitStreamWriter& writer, Float64 value)
 {
-    writer.writeFloat64(value);
+    return writer.writeFloat64(value);
 }
 
-inline void write(BitStreamWriter& writer, BytesView value)
+inline expected<void> write(BitStreamWriter& writer, BytesView value)
 {
-    writer.writeBytes(value);
+    return writer.writeBytes(value);
 }
 
-inline void write(BitStreamWriter& writer, std::string_view value)
+inline expected<void> write(BitStreamWriter& writer, std::string_view value)
 {
-    writer.writeString(value);
+    return writer.writeString(value);
 }
 
 template <typename ALLOC>
-inline void write(BitStreamWriter& writer, const BasicBitBufferView<ALLOC>& value)
+inline expected<void> write(BitStreamWriter& writer, const BasicBitBufferView<ALLOC>& value)
 {
-    writer.writeBitBuffer(value.get());
+    return writer.writeBitBuffer(value.get());
 }
 
 } // namespace detail

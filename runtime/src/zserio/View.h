@@ -6,6 +6,7 @@
 #include "zserio/BitSize.h"
 #include "zserio/BitStreamReader.h"
 #include "zserio/BitStreamWriter.h"
+#include "zserio/Expected.h"
 
 namespace zserio
 {
@@ -35,10 +36,10 @@ namespace detail
  *
  * \param view Zserio View to use for validation.
  *
- * \throw CppRuntimeException In case of any validation error.
+ * \return expected<void> containing error if validation fails.
  */
 template <typename T>
-void validate(const View<T>& view, std::string_view fieldName = "");
+expected<void> validate(const View<T>& view, std::string_view fieldName = "");
 
 /**
  * Global function for bit size provided via specialization.
@@ -88,10 +89,10 @@ BitSize initializeOffsets(const View<T>& view, BitSize bitPosition)
  * \param writer Bit stream writer to use for writing.
  * \param view Zserio View to use for writing.
  *
- * \throw CppRuntimeException In case of any write error.
+ * \return expected<void> containing error if writing fails.
  */
 template <typename T>
-void write(BitStreamWriter& writer, const View<T>& view);
+expected<void> write(BitStreamWriter& writer, const View<T>& view);
 
 /**
  * Global function for reading provided via specialization.
@@ -100,12 +101,10 @@ void write(BitStreamWriter& writer, const View<T>& view);
  * \param data Zserio Data to fill with read data.
  * \param arguments All parameters in case of Zserio parameterized type.
  *
- * \return View with read data.
- *
- * \throw CppRuntimeException In case of any read error.
+ * \return expected<View<T>> containing error if reading fails.
  */
 template <typename T, typename... ARGS>
-View<T> read(BitStreamReader& reader, T& data, ARGS...);
+expected<View<T>> read(BitStreamReader& reader, T& data, ARGS...);
 
 } // namespace detail
 

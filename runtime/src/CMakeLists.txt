@@ -17,6 +17,9 @@ cmake_minimum_required(VERSION 3.15.0)
 
 project(ZserioCpp17Runtime)
 
+# Add tl::expected submodule
+add_subdirectory(${CMAKE_SOURCE_DIR}/../../3rdparty/tl-expected)
+
 set(ZSERIO_CPP17_RUNTIME_LIB_SRCS
     zserio/pmr/Any.h
     zserio/pmr/BitBuffer.h
@@ -147,4 +150,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/zserio FILES ${ZSERIO_CPP17_RUNTIM
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/../../3rdparty/tl-expected/include)
+
+# Link against tl::expected
+target_link_libraries(${PROJECT_NAME} expected)

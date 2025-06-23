@@ -10,6 +10,7 @@
 #include "zserio/RebindAlloc.h"
 #include "zserio/String.h"
 #include "zserio/Types.h"
+#include "zserio/Expected.h"
 
 namespace zserio
 {
@@ -114,139 +115,145 @@ public:
      *
      * \param numBits Number of bits to read.
      *
-     * \return Read bits.
+     * \return expected<uint32_t> containing error if reading fails.
      */
-    uint32_t readUnsignedBits32(uint8_t numBits = 32);
+    expected<uint32_t> readUnsignedBits32(uint8_t numBits = 32);
 
     /**
      * Reads unsigned bits up to 64-bits.
      *
      * \param numBits Number of bits to read.
      *
-     * \return Read bits.
+     * \return expected<uint64_t> containing error if reading fails.
      */
-    uint64_t readUnsignedBits64(uint8_t numBits = 64);
+    expected<uint64_t> readUnsignedBits64(uint8_t numBits = 64);
 
     /**
      * Reads signed bits up to 32-bits.
      *
      * \param numBits Number of bits to read.
      *
-     * \return Read bits.
+     * \return expected<int32_t> containing error if reading fails.
      */
-    int32_t readSignedBits32(uint8_t numBits = 32);
+    expected<int32_t> readSignedBits32(uint8_t numBits = 32);
 
     /**
      * Reads signed bits up to 64-bits.
      *
      * \param numBits Number of bits to read.
      *
-     * \return Read bits.
+     * \return expected<int64_t> containing error if reading fails.
      */
-    int64_t readSignedBits64(uint8_t numBits = 64);
+    expected<int64_t> readSignedBits64(uint8_t numBits = 64);
 
     /**
      * Reads bool as a single bit.
      *
-     * \return Read bool value.
+     * \return expected<Bool> containing error if reading fails.
      */
-    Bool readBool();
+    expected<Bool> readBool();
 
     /**
      * Reads signed variable integer up to 16 bits.
      *
-     * \return Read varint16.
+     * \return expected<VarInt16> containing error if reading fails.
      */
-    VarInt16 readVarInt16();
+    expected<VarInt16> readVarInt16();
 
     /**
      * Reads signed variable integer up to 32 bits.
      *
-     * \return Read varint32.
+     * \return expected<VarInt32> containing error if reading fails.
      */
-    VarInt32 readVarInt32();
+    expected<VarInt32> readVarInt32();
 
     /**
      * Reads signed variable integer up to 32 bits.
      *
-     * \return Read VarInt64.
+     * \return expected<VarInt64> containing error if reading fails.
      */
-    VarInt64 readVarInt64();
+    expected<VarInt64> readVarInt64();
 
     /**
      * Reads signed variable integer up to 72 bits.
      *
-     * \return Read varint.
+     * \return expected<VarInt> containing error if reading fails.
      */
-    VarInt readVarInt();
+    expected<VarInt> readVarInt();
 
     /**
      * Read unsigned variable integer up to 16 bits.
      *
-     * \return Read varuint16.
+     * \return expected<VarUInt16> containing error if reading fails.
      */
-    VarUInt16 readVarUInt16();
+    expected<VarUInt16> readVarUInt16();
 
     /**
      * Read unsigned variable integer up to 32 bits.
      *
-     * \return Read varuint32.
+     * \return expected<VarUInt32> containing error if reading fails.
      */
-    VarUInt32 readVarUInt32();
+    expected<VarUInt32> readVarUInt32();
 
     /**
      * Read unsigned variable integer up to 64 bits.
      *
-     * \return Read varuint64.
+     * \return expected<VarUInt64> containing error if reading fails.
      */
-    VarUInt64 readVarUInt64();
+    expected<VarUInt64> readVarUInt64();
 
     /**
      * Read unsigned variable integer up to 72 bits.
      *
-     * \return Read varuint.
+     * \return expected<VarUInt> containing error if reading fails.
      */
-    VarUInt readVarUInt();
+    expected<VarUInt> readVarUInt();
 
     /**
      * Read variable size integer up to 40 bits.
      *
-     * \return Read varsize.
+     * \return expected<VarSize> containing error if reading fails.
      */
-    VarSize readVarSize();
+    expected<VarSize> readVarSize();
 
     /**
      * Reads 16-bit float.
      *
-     * \return Read float16.
+     * \return expected<Float16> containing error if reading fails.
      */
-    Float16 readFloat16();
+    expected<Float16> readFloat16();
 
     /**
      * Reads 32-bit float.
      *
-     * \return Read float32.
+     * \return expected<Float32> containing error if reading fails.
      */
-    Float32 readFloat32();
+    expected<Float32> readFloat32();
 
     /**
      * Reads 64-bit float double.
      *
-     * \return Read float64.
+     * \return expected<Float64> containing error if reading fails.
      */
-    Float64 readFloat64();
+    expected<Float64> readFloat64();
 
     /**
      * Reads bytes.
      *
      * \param alloc Allocator to use.
      *
-     * \return Read bytes as a vector.
+     * \return expected<BasicBytes<ALLOC>> containing error if reading fails.
      */
     template <typename ALLOC = std::allocator<uint8_t>>
-    BasicBytes<ALLOC> readBytes(const ALLOC& alloc = ALLOC())
+    expected<BasicBytes<ALLOC>> readBytes(const ALLOC& alloc = ALLOC())
     {
-        const size_t len = static_cast<size_t>(readVarSize());
+        auto lenResult = readVarSize();
+        if (!lenResult)
+        {
+            return tl::unexpected(lenResult.error());
+        }
+
+        const size_t len = static_cast<size_t>(*lenResult);
         const BitPosType beginBitPosition = getBitPosition();
         if ((beginBitPosition & 0x07U) != 0)
         {
@@ -255,7 +262,12 @@ public:
             value.reserve(len);
             for (size_t i = 0; i < len; ++i)
             {
-                value.push_back(readByte());
+                auto byteResult = readByte();
+                if (!byteResult)
+                {
+                    return tl::unexpected(byteResult.error());
+                }
+                value.push_back(*byteResult);
             }
             return value;
         }
@@ -273,12 +285,18 @@ public:
      *
      * \param alloc Allocator to use.
      *
-     * \return Read string.
+     * \return expected<BasicString<ALLOC>> containing error if reading fails.
      */
     template <typename ALLOC = std::allocator<char>>
-    BasicString<ALLOC> readString(const ALLOC& alloc = ALLOC())
+    expected<BasicString<ALLOC>> readString(const ALLOC& alloc = ALLOC())
     {
-        const size_t len = static_cast<size_t>(readVarSize());
+        auto lenResult = readVarSize();
+        if (!lenResult)
+        {
+            return tl::unexpected(lenResult.error());
+        }
+
+        const size_t len = static_cast<size_t>(*lenResult);
         const BitPosType beginBitPosition = getBitPosition();
         if ((beginBitPosition & 0x07U) != 0)
         {
@@ -287,8 +305,13 @@ public:
             value.reserve(len);
             for (size_t i = 0; i < len; ++i)
             {
+                auto byteResult = readByte();
+                if (!byteResult)
+                {
+                    return tl::unexpected(byteResult.error());
+                }
                 const char readCharacter = std::char_traits<char>::to_char_type(
-                        static_cast<std::char_traits<char>::int_type>(readByte()));
+                        static_cast<std::char_traits<char>::int_type>(*byteResult));
                 value.push_back(readCharacter);
             }
             return value;
@@ -307,12 +330,19 @@ public:
      *
      * \param alloc Allocator to use.
      *
-     * \return Read bit buffer.
+     * \return expected<BasicBitBuffer<RebindAlloc<ALLOC, uint8_t>>> containing error if reading fails.
      */
     template <typename ALLOC = std::allocator<uint8_t>>
-    BasicBitBuffer<RebindAlloc<ALLOC, uint8_t>> readBitBuffer(const ALLOC& allocator = ALLOC())
+    expected<BasicBitBuffer<RebindAlloc<ALLOC, uint8_t>>> readBitBuffer(const ALLOC& allocator = ALLOC())
     {
-        const size_t bitSize = static_cast<size_t>(readVarSize());
+
+        auto bitSizeResult = readVarSize();
+        if (!bitSizeResult)
+        {
+            return tl::unexpected(bitSizeResult.error());
+        }
+        const size_t bitSize = static_cast<size_t>(*bitSizeResult);
+
         const size_t numBytesToRead = bitSize / 8;
         const uint8_t numRestBits = static_cast<uint8_t>(bitSize - numBytesToRead * 8);
         BasicBitBuffer<RebindAlloc<ALLOC, uint8_t>> bitBuffer(bitSize, allocator);
@@ -324,7 +354,12 @@ public:
             // we are not aligned to byte
             for (Span<uint8_t>::iterator it = buffer.begin(); it != itEnd; ++it)
             {
-                *it = static_cast<uint8_t>(readUnsignedBits32(8));
+                auto byteResult = readUnsignedBits32(8);
+                if (!byteResult)
+                {
+                    return tl::unexpected(byteResult.error());
+                }
+                *it = static_cast<uint8_t>(*byteResult);
             }
         }
         else
@@ -337,7 +372,12 @@ public:
 
         if (numRestBits > 0)
         {
-            *itEnd = static_cast<uint8_t>(readUnsignedBits32(numRestBits) << (8U - numRestBits));
+            auto restBitsResult = readUnsignedBits32(numRestBits);
+            if (!restBitsResult)
+            {
+                return tl::unexpected(restBitsResult.error());
+            }
+            *itEnd = static_cast<uint8_t>(*restBitsResult << (8U - numRestBits));
         }
 
         return bitBuffer;
@@ -378,7 +418,7 @@ public:
     }
 
 private:
-    uint8_t readByte();
+    expected<uint8_t> readByte();
 
     ReaderContext m_context;
 };

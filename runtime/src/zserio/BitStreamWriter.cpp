@@ -344,165 +344,399 @@ BitStreamWriter::BitStreamWriter(Span<uint8_t> buffer, size_t bufferBitSize) :
     }
 }
 
-void BitStreamWriter::writeUnsignedBits32(uint32_t data, uint8_t numBits)
+expected<void> BitStreamWriter::writeUnsignedBits32(uint32_t data, uint8_t numBits)
 {
     if (numBits == 0 || numBits > sizeof(uint32_t) * 8 || data > MAX_U32_VALUES[numBits])
     {
-        throw CppRuntimeException("BitStreamWriter: Writing of ")
-                << numBits << "-bits value '" << data << "' failed!";
+        return tl::make_unexpected(Error::WRITE_ERROR);
     }
 
-    writeUnsignedBits32Impl(data, numBits);
+
+    auto result = writeUnsignedBits32Impl(data, numBits);
+    if (!result)
+    {
+        return result.error();
+    }
+
+    return {};
 }
 
-void BitStreamWriter::writeUnsignedBits64(uint64_t data, uint8_t numBits)
+expected<void> BitStreamWriter::writeUnsignedBits64(uint64_t data, uint8_t numBits)
 {
     if (numBits == 0 || numBits > sizeof(uint64_t) * 8 || data > MAX_U64_VALUES[numBits])
     {
-        throw CppRuntimeException("BitStreamWriter: Writing of ")
-                << numBits << "-bits value '" << data << "' failed!";
+        return tl::make_unexpected(Error::WRITE_ERROR);
     }
 
-    writeUnsignedBits64Impl(data, numBits);
+
+
+    auto result = writeUnsignedBits64Impl(data, numBits);
+    if (!result)
+    {
+        return result.error();
+    }
+
+
+    return {};
 }
 
-void BitStreamWriter::writeSignedBits32(int32_t data, uint8_t numBits)
+expected<void> BitStreamWriter::writeSignedBits32(int32_t data, uint8_t numBits)
 {
     if (numBits == 0 || numBits > sizeof(int32_t) * 8 || data < MIN_I32_VALUES[numBits] ||
             data > MAX_I32_VALUES[numBits])
     {
-        throw CppRuntimeException("BitStreamWriter: Writing of ")
-                << numBits << "-bits value '" << data << "' failed!";
+        return tl::make_unexpected(Error::WRITE_ERROR);
     }
 
-    writeUnsignedBits32Impl(static_cast<uint32_t>(data) & MAX_U32_VALUES[numBits], numBits);
+
+
+
+    auto result = writeUnsignedBits32Impl(static_cast<uint32_t>(data) & MAX_U32_VALUES[numBits], numBits);
+    if (!result)
+    {
+        return result.error();
+    }
+
+
+
+    return {};
 }
 
-void BitStreamWriter::writeSignedBits64(int64_t data, uint8_t numBits)
+expected<void> BitStreamWriter::writeSignedBits64(int64_t data, uint8_t numBits)
 {
     if (numBits == 0 || numBits > sizeof(int64_t) * 8 || data < MIN_I64_VALUES[numBits] ||
             data > MAX_I64_VALUES[numBits])
     {
-        throw CppRuntimeException("BitStreamWriter: Writing of ")
-                << numBits << "-bits value '" << data << "' failed!";
+        return tl::make_unexpected(Error::WRITE_ERROR);
     }
 
-    writeUnsignedBits64Impl(static_cast<uint64_t>(data) & MAX_U64_VALUES[numBits], numBits);
+
+
+
+
+    auto result = writeUnsignedBits64Impl(static_cast<uint64_t>(data) & MAX_U64_VALUES[numBits], numBits);
+    if (!result)
+    {
+        return result.error();
+    }
+
+
+
+
+    return {};
 }
 
-void BitStreamWriter::writeBool(Bool data)
+expected<void> BitStreamWriter::writeBool(Bool data)
 {
-    writeUnsignedBits32Impl((data ? 1 : 0), 1);
+
+
+    auto result = writeUnsignedBits32Impl((data ? 1 : 0), 1);
+    if (!result)
+    {
+        return result.error();
+    }
+
+
+    return {};
 }
 
-void BitStreamWriter::writeVarInt16(VarInt16 data)
+expected<void> BitStreamWriter::writeVarInt16(VarInt16 data)
 {
-    writeSignedVarNum(data, 2, detail::bitSizeOf(data) / 8);
+    auto result = writeSignedVarNum(data, 2, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
 }
 
-void BitStreamWriter::writeVarInt32(VarInt32 data)
+expected<void> BitStreamWriter::writeVarInt32(VarInt32 data)
 {
-    writeSignedVarNum(data, 4, detail::bitSizeOf(data) / 8);
+    auto result = writeSignedVarNum(data, 4, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
 }
 
-void BitStreamWriter::writeVarInt64(VarInt64 data)
+expected<void> BitStreamWriter::writeVarInt64(VarInt64 data)
 {
-    writeSignedVarNum(data, 8, detail::bitSizeOf(data) / 8);
+    auto result = writeSignedVarNum(data, 8, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
 }
 
-void BitStreamWriter::writeVarInt(VarInt data)
+expected<void> BitStreamWriter::writeVarInt(VarInt data)
 {
     if (data == INT64_MIN)
     {
-        writeUnsignedBits32Impl(0x80, 8); // INT64_MIN is encoded as -0
-    }
-    else
-    {
-        writeSignedVarNum(data, 9, detail::bitSizeOf(data) / 8);
-    }
-}
-
-void BitStreamWriter::writeVarUInt16(VarUInt16 data)
-{
-    writeUnsignedVarNum(data, 2, detail::bitSizeOf(data) / 8);
-}
-
-void BitStreamWriter::writeVarUInt32(VarUInt32 data)
-{
-    writeUnsignedVarNum(data, 4, detail::bitSizeOf(data) / 8);
-}
-
-void BitStreamWriter::writeVarUInt64(VarUInt64 data)
-{
-    writeUnsignedVarNum(data, 8, detail::bitSizeOf(data) / 8);
-}
-
-void BitStreamWriter::writeVarUInt(VarUInt data)
-{
-    writeUnsignedVarNum(data, 9, detail::bitSizeOf(data) / 8);
-}
-
-void BitStreamWriter::writeVarSize(VarSize data)
-{
-    writeUnsignedVarNum(data, 5, detail::bitSizeOf(data) / 8);
-}
-
-void BitStreamWriter::writeFloat16(Float16 data)
-{
-    const uint16_t halfPrecisionFloat = convertFloatToUInt16(data);
-    writeUnsignedBits32Impl(halfPrecisionFloat, 16);
-}
-
-void BitStreamWriter::writeFloat32(Float32 data)
-{
-    const uint32_t singlePrecisionFloat = convertFloatToUInt32(data);
-    writeUnsignedBits32Impl(singlePrecisionFloat, 32);
-}
-
-void BitStreamWriter::writeFloat64(Float64 data)
-{
-    const uint64_t doublePrecisionFloat = convertDoubleToUInt64(data);
-    writeUnsignedBits64(doublePrecisionFloat, 64);
-}
-
-void BitStreamWriter::writeBytes(BytesView data)
-{
-    const VarSize len = fromCheckedValue<VarSize>(convertSizeToUInt32(data.size()));
-    writeVarSize(len);
-
-    const BitPosType beginBitPosition = getBitPosition();
-    if ((beginBitPosition & 0x07U) != 0)
-    {
-        // we are not aligned to byte
-        for (size_t i = 0; i < len; ++i)
+        auto result = writeUnsignedBits32Impl(0x80, 8);
+        if (!result)
         {
-            writeUnsignedBits32Impl(data[i], 8);
+            return result.error();
         }
     }
     else
     {
-        // we are aligned to bytes
-        setBitPosition(beginBitPosition + len * 8);
-        if (hasWriteBuffer())
+        auto result = writeSignedVarNum(data, 9, detail::bitSizeOf(data) / 8);
+        if (!result)
         {
-            (void)std::copy(data.begin(), data.end(), m_buffer.begin() + beginBitPosition / 8);
+            return result.error();
         }
     }
+    return {};
+}
 }
 
-void BitStreamWriter::writeString(std::string_view data)
+expected<void> BitStreamWriter::writeVarUInt16(VarUInt16 data)
 {
-    const VarSize len = fromCheckedValue<VarSize>(convertSizeToUInt32(data.size()));
-    writeVarSize(len);
-
-    const BitPosType beginBitPosition = getBitPosition();
-    if ((beginBitPosition & 0x07U) != 0)
+    auto result = writeUnsignedVarNum(data, 2, detail::bitSizeOf(data) / 8);
+    if (!result)
     {
-        // we are not aligned to byte
-        for (size_t i = 0; i < len; ++i)
+        return result.error();
+    }
+    return {};
+}
+
+expected<void> BitStreamWriter::writeVarUInt32(VarUInt32 data)
+{
+    auto result = writeUnsignedVarNum(data, 4, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
+}
+
+expected<void> BitStreamWriter::writeVarUInt64(VarUInt64 data)
+{
+    auto result = writeUnsignedVarNum(data, 8, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
+}
+
+expected<void> BitStreamWriter::writeVarUInt(VarUInt data)
+{
+    auto result = writeUnsignedVarNum(data, 9, detail::bitSizeOf(data) / 8);
+    if (!result)
+    {
+        return result.error();
+    }
+    return {};
+}
+
+expected<void> BitStreamWriter::writeVarSize(VarSize data)
+{
+    try
+    {
+        auto result = writeUnsignedVarNum(data, 5, detail::bitSizeOf(data) / 8);
+        if (!result)
         {
-            // TODO[Mi-L@]: can we use unchecked here?!
-            writeUnsignedBits32(static_cast<uint8_t>(std::char_traits<char>::to_int_type(data[i])), 8);
+            return result.error();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+    return {};
+}
+
+
+
+}
+
+expected<void> BitStreamWriter::writeFloat16(Float16 data)
+{
+    try
+    {
+        const uint16_t halfPrecisionFloat = convertFloatToUInt16(data);
+
+        auto result = writeUnsignedBits32Impl(halfPrecisionFloat, 16);
+        if (!result)
+        {
+            return result.error();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+    return {};
+}
+
+
+
+    return {};
+
+
+}
+
+expected<void> BitStreamWriter::writeFloat32(Float32 data)
+{
+    try
+    {
+        const uint32_t singlePrecisionFloat = convertFloatToUInt32(data);
+
+        auto result = writeUnsignedBits32Impl(singlePrecisionFloat, 32);
+        if (!result)
+        {
+            return result.error();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+    return {};
+}
+
+
+
+
+    return {};
+
+
+
+}
+
+expected<void> BitStreamWriter::writeFloat64(Float64 data)
+{
+    try
+    {
+        const uint64_t doublePrecisionFloat = convertDoubleToUInt64(data);
+
+        auto result = writeUnsignedBits64(doublePrecisionFloat, 64);
+        if (!result)
+        {
+            return result.error();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+    return {};
+}
+
+
+
+
+
+    return {};
+
+
+
+
+}
+
+expected<void> BitStreamWriter::writeBytes(BytesView data)
+{
+    try
+    {
+        const VarSize len = fromCheckedValue<VarSize>(convertSizeToUInt32(data.size()));
+
+        auto result = writeVarSize(len);
+        if (!result)
+        {
+            return result.error();
+        }
+
+        const BitPosType beginBitPosition = getBitPosition();
+        if ((beginBitPosition & 0x07U) != 0)
+        {
+            // we are not aligned to byte
+            for (size_t i = 0; i < len; ++i)
+            {
+                auto byteResult = writeUnsignedBits32Impl(data[i], 8);
+                if (!byteResult)
+                {
+                    return byteResult.error();
+                }
+            }
+        }
+        else
+        {
+            // we are aligned to byte
+            const size_t numBytes = static_cast<size_t>(len);
+            if (numBytes > 0)
+            {
+                if (!writeBytesImpl(data.data(), numBytes))
+                {
+                    return tl::make_unexpected(Error::WRITE_ERROR);
+                }
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+}
+
+expected<void> BitStreamWriter::writeString(std::string_view data)
+{
+    try
+    {
+        const VarSize len = fromCheckedValue<VarSize>(convertSizeToUInt32(data.size()));
+
+        auto result = writeVarSize(len);
+        if (!result)
+        {
+            return result.error();
+        }
+
+        const BitPosType beginBitPosition = getBitPosition();
+        if ((beginBitPosition & 0x07U) != 0)
+        {
+            // we are not aligned to byte
+            for (size_t i = 0; i < len; ++i)
+            {
+                auto byteResult = writeUnsignedBits32Impl(static_cast<uint8_t>(data[i]), 8);
+                if (!byteResult)
+                {
+                    return byteResult.error();
+                }
+            }
+        }
+        else
+        {
+            // we are aligned to byte
+            const size_t numBytes = static_cast<size_t>(len);
+            if (numBytes > 0)
+            {
+                if (!writeBytesImpl(reinterpret_cast<const uint8_t*>(data.data()), numBytes))
+                {
+                    return tl::make_unexpected(Error::WRITE_ERROR);
+                }
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+    
+    return {};
+}
+    }
+
+
+
+
+
         }
     }
     else
@@ -514,6 +748,9 @@ void BitStreamWriter::writeString(std::string_view data)
             (void)std::copy(data.begin(), data.begin() + len, m_buffer.data() + beginBitPosition / 8);
         }
     }
+
+    return {};
+}
 }
 
 void BitStreamWriter::setBitPosition(BitPosType position)
@@ -546,99 +783,257 @@ Span<const uint8_t> BitStreamWriter::getBuffer() const
     return m_buffer;
 }
 
-void BitStreamWriter::writeUnsignedBits32Impl(uint32_t data, uint8_t numBits)
+expected<void> BitStreamWriter::writeUnsignedBits32Impl(uint32_t data, uint8_t numBits)
 {
     if (!hasWriteBuffer())
     {
         m_bitIndex += numBits;
-        return;
+        return {};
     }
 
-    checkCapacity(m_bitIndex + numBits);
-
-    uint8_t restNumBits = numBits;
-    const uint8_t bitsUsed = m_bitIndex & 0x07U;
-    uint8_t bitsFree = static_cast<uint8_t>(8 - bitsUsed);
-    size_t byteIndex = m_bitIndex / 8;
-
-    if (restNumBits > bitsFree)
+    try
     {
-        // first part
-        const uint8_t shiftNum = static_cast<uint8_t>(restNumBits - bitsFree);
-        const uint8_t maskedByte = static_cast<uint8_t>(m_buffer[byteIndex] & ~(0xFFU >> bitsUsed));
-        m_buffer[byteIndex++] = static_cast<uint8_t>(maskedByte | (data >> shiftNum));
-        restNumBits = static_cast<uint8_t>(restNumBits - bitsFree);
+        checkCapacity(m_bitIndex + numBits);
 
-        // middle parts
-        while (restNumBits >= 8)
+        uint8_t restNumBits = numBits;
+        const uint8_t bitsUsed = m_bitIndex & 0x07U;
+        uint8_t bitsFree = static_cast<uint8_t>(8 - bitsUsed);
+        size_t byteIndex = m_bitIndex / 8;
+
+        if (restNumBits > bitsFree)
         {
-            restNumBits = static_cast<uint8_t>(restNumBits - 8);
-            m_buffer[byteIndex++] = static_cast<uint8_t>((data >> restNumBits) & MAX_U32_VALUES[8]);
+            // first part
+            const uint8_t shiftNum = static_cast<uint8_t>(restNumBits - bitsFree);
+            const uint8_t maskedByte = static_cast<uint8_t>(m_buffer[byteIndex] & ~(0xFFU >> bitsUsed));
+            m_buffer[byteIndex++] = static_cast<uint8_t>(maskedByte | (data >> shiftNum));
+            restNumBits = static_cast<uint8_t>(restNumBits - bitsFree);
+
+            // middle parts
+            while (restNumBits >= 8)
+            {
+                restNumBits = static_cast<uint8_t>(restNumBits - 8);
+                m_buffer[byteIndex++] = static_cast<uint8_t>((data >> restNumBits) & MAX_U32_VALUES[8]);
+            }
+
+            // reset bits free
+            bitsFree = 8;
         }
 
-        // reset bits free
-        bitsFree = 8;
-    }
+        // last part
+        if (restNumBits > 0)
+        {
+            const uint8_t shiftNum = static_cast<uint8_t>(bitsFree - restNumBits);
+            const uint32_t mask = MAX_U32_VALUES[restNumBits];
+            const uint8_t maskedByte = m_buffer[byteIndex] & static_cast<uint8_t>(~static_cast<uint8_t>(mask << shiftNum));
+            m_buffer[byteIndex] = static_cast<uint8_t>(maskedByte | ((data & mask) << shiftNum));
+        }
 
-    // last part
-    if (restNumBits > 0)
+        m_bitIndex += numBits;
+    }
+    catch (const std::exception& e)
     {
-        const uint8_t shiftNum = static_cast<uint8_t>(bitsFree - restNumBits);
-        const uint32_t mask = MAX_U32_VALUES[restNumBits];
-        const uint8_t maskedByte =
-                m_buffer[byteIndex] & static_cast<uint8_t>(~static_cast<uint8_t>(mask << shiftNum));
-        m_buffer[byteIndex] = static_cast<uint8_t>(maskedByte | ((data & mask) << shiftNum));
-    }
+              return tl::make_unexpected(Error::fromException(e));
+          }
 
-    m_bitIndex += numBits;
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+          return {};
+
+
+    return {};
 }
 
-inline void BitStreamWriter::writeUnsignedBits64Impl(uint64_t data, uint8_t numBits)
+          return {};
+}
+
+    return {};
+}
+
+          return {};
+}
+
+    return {};
+}
+
+          return {};
+}
+
+    return {};
+}
+
+          return {};
+}
+
+    return {};
+}
+
+          return {};
+}
+
+    return {};
+}
+    }
+    return {};
+}
+
+inline expected<void> BitStreamWriter::writeUnsignedBits64Impl(uint64_t data, uint8_t numBits)
 {
-    if (numBits <= 32)
+    try
     {
-        writeUnsignedBits32Impl(static_cast<uint32_t>(data), numBits);
+        if (numBits <= 32)
+        {
+            auto result = writeUnsignedBits32Impl(static_cast<uint32_t>(data), numBits);
+            if (!result)
+            {
+                return result.error();
+            }
+        }
+        else
+        {
+            auto result1 = writeUnsignedBits32Impl(static_cast<uint32_t>(data >> 32U), static_cast<uint8_t>(numBits - 32));
+            if (!result1)
+            {
+                return result1.error();
+            }
+
+            auto result2 = writeUnsignedBits32Impl(static_cast<uint32_t>(data), 32);
+            if (!result2)
+            {
+                return result2.error();
+            }
+        }
+
+        return {};
     }
-    else
+    catch (const std::exception& e)
     {
-        writeUnsignedBits32Impl(static_cast<uint32_t>(data >> 32U), static_cast<uint8_t>(numBits - 32));
-        writeUnsignedBits32Impl(static_cast<uint32_t>(data), 32);
+        return tl::make_unexpected(Error::fromException(e));
     }
 }
 
-inline void BitStreamWriter::writeSignedVarNum(int64_t value, size_t maxVarBytes, size_t numVarBytes)
+inline expected<void> BitStreamWriter::writeSignedVarNum(int64_t value, size_t maxVarBytes, size_t numVarBytes)
+
+inline expected<void> BitStreamWriter::writeSignedVarNum(int64_t value, size_t maxVarBytes, size_t numVarBytes)
 {
-    const uint64_t absValue = static_cast<uint64_t>(value < 0 ? -value : value);
-    writeVarNum(absValue, true, value < 0, maxVarBytes, numVarBytes);
+    try
+    {
+        const uint64_t absValue = static_cast<uint64_t>(value < 0 ? -value : value);
+
+        auto result = writeVarNum(absValue, true, value < 0, maxVarBytes, numVarBytes);
+        if (!result)
+        {
+            return result.error();
+        }
+
+        return {};
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
 }
 
-inline void BitStreamWriter::writeUnsignedVarNum(uint64_t value, size_t maxVarBytes, size_t numVarBytes)
+
+inline expected<void> BitStreamWriter::writeUnsignedVarNum(uint64_t value, size_t maxVarBytes, size_t numVarBytes)
+
+inline expected<void> BitStreamWriter::writeUnsignedVarNum(uint64_t value, size_t maxVarBytes, size_t numVarBytes)
 {
-    writeVarNum(value, false, false, maxVarBytes, numVarBytes);
+    try
+    {
+        auto result = writeVarNum(value, false, false, maxVarBytes, numVarBytes);
+        if (!result)
+        {
+            return result.error();
+        }
+
+        return {};
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
 }
 
-inline void BitStreamWriter::writeVarNum(
+
+
+
+}
+
+inline expected<void> BitStreamWriter::writeVarNum(
+
+inline expected<void> BitStreamWriter::writeVarNum(
         uint64_t value, bool hasSign, bool isNegative, size_t maxVarBytes, size_t numVarBytes)
 {
-    static const std::array<uint64_t, 8> bitMasks = {0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF};
-    const bool hasMaxByteRange = (numVarBytes == maxVarBytes);
-
-    for (size_t i = 0; i < numVarBytes; i++)
+    try
     {
-        uint8_t byte = 0x00;
-        uint8_t numBits = 8;
-        const bool hasNextByte = (i < numVarBytes - 1);
-        const bool hasSignBit = (hasSign && i == 0);
-        if (hasSignBit)
+        static const std::array<uint64_t, 8> bitMasks = {0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF};
+        const bool hasMaxByteRange = (numVarBytes == maxVarBytes);
+
+        for (size_t i = 0; i < numVarBytes; i++)
         {
-            if (isNegative)
+            uint8_t byte = 0x00;
+            uint8_t numBits = 8;
+            const bool hasNextByte = (i < numVarBytes - 1);
+            const bool hasSignBit = (hasSign && i == 0);
+            if (hasSignBit)
             {
-                byte |= 0x80U;
+                if (isNegative)
+                {
+                    byte |= 0x80U;
+                }
+                numBits--;
             }
-            numBits--;
+            if (hasNextByte)
+            {
+                numBits--;
+                const uint8_t add = static_cast<uint8_t>(0x01U << numBits);
+                byte = static_cast<uint8_t>(byte | add); // use bit 6 if signed bit is present, use bit 7 otherwise
+            }
+            else // this is the last byte
+            {
+                if (!hasMaxByteRange) // next byte indicator is not used in last byte in case of max byte range
+                {
+                    numBits--;
+                }
+            }
+
+            const size_t shiftBits = (numVarBytes - (i + 1)) * 7 + ((hasMaxByteRange && hasNextByte) ? 1 : 0);
+            const uint8_t add = static_cast<uint8_t>((value >> shiftBits) & bitMasks[numBits - 1U]);
+            byte = static_cast<uint8_t>(byte | add);
+
+            auto result = writeUnsignedBits32Impl(byte, 8);
+            if (!result)
+            {
+                return result.error();
+            }
         }
-        if (hasNextByte)
-        {
+        return {};
+    }
+    catch (const std::exception& e)
+    {
+        return tl::make_unexpected(Error::fromException(e));
+    }
+}
+
             numBits--;
             const uint8_t add = static_cast<uint8_t>(0x01U << numBits);
             byte = static_cast<uint8_t>(byte | add); // use bit 6 if signed bit is present, use bit 7 otherwise
@@ -654,8 +1049,17 @@ inline void BitStreamWriter::writeVarNum(
         const size_t shiftBits = (numVarBytes - (i + 1)) * 7 + ((hasMaxByteRange && hasNextByte) ? 1 : 0);
         const uint8_t add = static_cast<uint8_t>((value >> shiftBits) & bitMasks[numBits - 1U]);
         byte = static_cast<uint8_t>(byte | add);
-        writeUnsignedBits32Impl(byte, 8);
+
+
+        auto result = writeUnsignedBits32Impl(byte, 8);
+        if (!result)
+        {
+            return result.error();
+        }
+
+
     }
+    return {};
 }
 
 inline void BitStreamWriter::throwInsufficientCapacityException() const
